@@ -1,0 +1,83 @@
+
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>落地统计服务演示系统</title>
+    <link type="text/css" rel="stylesheet" href="css/main.css"/>
+</head>
+<body>
+    <h1>查询演示页面</h1>
+    <!--url-search-->
+    <div class="url-search">
+        <span>单篇资讯查询</span>
+        <input type="text" name="demo-url" id="demo-url" />
+        <button>开始查询</button>
+        <div class="timer"></div>
+    </div>
+    <div class="url-more">
+        <table width="100%" cellspacing="0" style="border-collapse:collapse;">
+            
+        </table>
+    </div>
+    <script type="text/javascript" src="js/jquery-1.7.1.js"></script>
+    <script type="text/javascript">
+        var oDiv=document.querySelector(".url-more");
+        oDiv.style.height=(window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight)-174+"px";
+        window.onresize=function(){
+            oDiv.style.height=(window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight)-174+"px";
+        };
+        function newsQuery(){
+            $(".timer").html("");
+            if($("#demo-url").val().trim()==""){
+                alert("不能为空");
+                return;
+            };
+            $(".url-search button").attr("disabled",true).html("正在查询中...");
+            $(".url-more table").html("");
+            var urlValue=$("#demo-url").val();
+            var deathTh="<thead><tr><th width='60px'>序号</th><th width='260px'>标题</th><th width='130px'>作者</th><th width='130px'>媒体名称</th><th width='130px'>内容来源</th><th width='150px'>发表时间</th></tr></thead>";
+            $.ajax({
+                type:"get",
+                url:"api/single/search?url="+encodeURIComponent(urlValue),
+                data:null,
+                success:function(data){
+                    if(data=="failure"||data=="[]"){
+                        $(".url-more table").append("没有查询到结果！");
+                    }else{
+                        var json =eval("("+data+")");
+                        var datas=json.list;
+                        var timer=json.timer;
+                        $(".timer").html("耗时："+timer)
+                        if(datas&&datas.length>0){
+                            var ii=1;
+                            for(var i=0;i<datas.length;i++){
+                                var author=datas[i].author==null?'':datas[i].author;
+                                var media_name=datas[i].media_name==null?'':datas[i].media_name;
+                                var content_media_name=datas[i].content_media_name==null?'':datas[i].content_media_name;
+                                deathTh+="<tr><td>"+ii+"</td><td class='url-title'><a href='"+datas[i].url+"' target='_blank'>"+datas[i].title+"</a></td><td><span>"+author+"</span></td><td><span>"+media_name+"</span></td><td><span>"+content_media_name+"</span></td><td>"+datas[i].release_date+"</td></tr>";
+                                ii++;
+                            }
+                            $(".url-more table").append(deathTh);
+                        }else {
+                            $(".url-more table").append("没有查询到结果！");
+                        }
+                    }
+                    $(".url-search button").html("开始查询");
+                    $(".url-search button").attr("disabled",false);
+                },
+                error:function(){
+                    $(".url-search button").html("开始查询");
+                    $(".url-search button").attr("disabled",false);
+                }
+            });
+        }
+        $(".url-search button").bind("click",newsQuery);
+        $("#demo-url").keydown(function(e){
+            if(e.keyCode==13){
+                newsQuery();
+            }
+        });
+    </script>
+</body>
+</html>

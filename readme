@@ -1,0 +1,9 @@
+jfinal +guice +velocity
+
+http∑√Œ 
+
+http://localhost:8080/test/api/search?para=1
+http://localhost:8080/test/index
+
+mvn tomcat7:run
+mvn clean package

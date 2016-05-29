@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>落地统计服务演示系统</title>
+    <link type="text/css" rel="stylesheet" href="css/main.css"/>
+</head>
+<body>
+<h1>查询演示页面</h1>
+<!--url-search-->
+<div class="url-search">
+    <span>热点资讯查询</span>
+    <input type="text" name="demo-url" id="demo-url" />
+    <button>开始查询</button>
+    <div class="timer"></div>
+</div>
+<ul class="url-more words-more"></ul>
+<div class="words-zIndex"></div>
+<script type="text/javascript" src="js/jquery-1.7.1.js"></script>
+<script type="text/javascript">
+    var oDiv=document.querySelector(".url-more");
+    oDiv.style.height=(window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight)-174+"px";
+    window.onresize=function(){
+        oDiv.style.height=(window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight)-174+"px";
+    };
+    $(".words-sameClick").live("click",function(){
+    	var nextDlg = $(this).next();
+    	if(nextDlg.attr("hasData")) {
+	        var marginTop=$(this).next().height()/2;
+	        $(".words-zIndex").show();
+	        $(this).next().css("margin-top",-marginTop).show();
+    	} else {
+    		var trs = nextDlg.find("table tr");
+    		var len = trs.length;
+    		var ids = [];
+    		for(var i = 1; i < len; i++) {
+    			var tr = trs[i];
+    			ids.push(tr.getAttribute("id"));
+    		}
+    		console.info(ids);
+    		$.ajax({
+    			type:"post",
+    			data:{docIds : ids + ""},
+    			url:"api/multi/getdocs",
+    			success:function(data){
+    				var json =eval("("+data+")");
+    				var datas=json.list;
+    				for(var i=0;i<datas.length;i++){
+    					var row = datas[i];
+    					var tds = $("#"+row._id).find("td");
+    					tds[1].innerHTML="<a href=\""+ row.url +"\" target=_blank>"+row.title +"</a>";
+    					tds[2].innerText=row.author;
+    					tds[3].innerText=row.media_name;
+    					tds[4].innerText=row.content_media_name;
+    					tds[5].innerText=row.release_date;
+    				}
+    				nextDlg.attr("hasData", true);
+    				var marginTop=nextDlg.height()/2;
+    		        $(".words-zIndex").show();
+    		        nextDlg.css("margin-top",-marginTop).show();
+    			},
+    			error:function(e){
+    				alert('error:' + e);	
+    			}
+    		});
+    	}
+    })
+    $(".words-delete span,.words-zIndex").live("click",function(){
+        $(".words-zIndex").hide();
+        $(".words-sameMore").hide();
+    });
+   
+    function hotSearch(){
+        $(".timer").html("");
+        if($("#demo-url").val().trim()==''){
+            alert("不能为空");
+            return;
+        };
+        $(".url-search button").attr("disabled",true);
+        $(".url-search button").html("正在查询中...");
+        $(".words-more").html("");
+        var urlValue=$("#demo-url").val();
+        var oLi="";
+        $.ajax({
+            type:"get",
+            url:"api/multi/search?hotword="+encodeURIComponent(urlValue)+"&searchMethod=1",
+            data:null,
+            success:function(data){
+                if(data=="failure"||data=="[]"){
+                    $(".words-more").append("没有查询到结果！");
+                }else{
+                    var json =eval("("+data+")");
+                    var datas=json.list;
+                    var timer=json.timer;
+                    $(".timer").html("耗时："+timer);
+                    if(datas&&datas.length>0){
+                        var ii=1;
+                        for(var i=0;i<datas.length;i++){
+                            oLi+="<li><span class='count'>"+ii+"、</span><a href='"+datas[i][0].url+"' target='_blank'>"
+                            	+datas[i][0].title+"</a><span class='words-sourse'></span><span class='words-time'>"
+                            	+datas[i][0].release_date+"</span><div class='words-same'><span class='words-sameClick' style='color:red;'>"
+                            	+datas[i].length+"条相同新闻</span><div class='words-sameMore'><div class='words-sameMoreBox'>"
+                            	+"<div class='words-delete'><span>×</span></div><table width='100%' cellspacing='0' style='border-collapse:collapse;'>"
+                            	+"<thead><tr><th width='60px'>序号</th><th width='260px'>标题</th>"
+                            	+"<th width='130px'>作者</th><th width='130px'>媒体名称</th><th width='130px'>"
+                            	+"内容来源</th><th width='150px'>发表时间</th></tr></thead>";
+                            var jj=1;
+                            for(var j=0;j<datas[i].length;j++){
+                            	var row = datas[i][j];
+                                var author=row.author==null?'':row.author;
+                                var media_name=row.media_name==null?'':row.media_name;
+                                var content_media_name=row.content_media_name==null?'':row.content_media_name;
+                                oLi+="<tr id=\"" + row._id+"\"><td>"+jj+"</td><td><a href='"+row.url+"' target='_blank'>"
+                                	+row.title+"</a></td><td><span>"+author+"</span></td><td><span>"
+                                	+media_name+"</span></td><td><span>"+content_media_name+"</span></td><td>"
+                                	+row.release_date+"</td></tr>";
+                                jj++;
+                            }
+                            oLi+="</table></div></div></div></li>";
+                            ii++;
+                        }
+                        $(".words-more").append(oLi);
+                        $(".words-sameMore").bind("scroll",function(){
+                            $(this).find(".words-delete").css("top",$(this).get(0).scrollTop-3);
+                         });
+                    }else {
+                        $(".words-more").append("没有查询到结果！");
+                    }
+                }
+                $(".url-search button").html("开始查询");
+                $(".url-search button").attr("disabled",false);
+            },
+            error:function(){
+                $(".url-search button").html("开始查询");
+                $(".url-search button").attr("disabled",false);
+            }
+        });
+    };
+    $(".url-search button").bind("click",hotSearch);
+    $("#demo-url").keydown(function(e){
+        if(e.keyCode==13){
+            hotSearch();
+        }
+    });
+    	
+    
+</script>
+</body>
+</html>
